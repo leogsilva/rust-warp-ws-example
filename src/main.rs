@@ -92,7 +92,9 @@ fn sse_counter(counter: u64) -> std::result::Result<impl ServerSentEvent, Infall
 
 #[tokio::main]
 async fn main() {
-    let routes = warp::path("ticks")
+    let health_route = warp::path("health").and_then(handler::health_handler);
+
+    let ticks_route = warp::path("ticks")
         .and(warp::get())
         .map(|| {
             let mut counter: u64 = 0;
@@ -101,7 +103,10 @@ async fn main() {
                 sse_counter(counter)
             });
             warp::sse::reply(event_stream)
-        })
+        });
+
+    let routes = health_route
+        .or(ticks_route)
         .with(warp::cors().allow_any_origin());
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }
